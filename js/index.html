@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="style.css"/>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <style>
+            body {
+                margin: auto;
+                position: relative;
+            }
+            button {
+                /* position: relative;
+                float: right; */
+            }
+            .container {
+                position: relative;
+                float: right;
+                height: 100px;
+                width: 550px;
+                background-color: white
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <button type="button" onclick="generateRandomPoints()">Generate Random Points</button>
+            <button type="button" onclick="clearCanvas()">Clear Canvas</button>
+            <button type="button" onclick="giftWrapping()">Gift Wrapping</button>
+        </div>
+    </body>
+    <script>
+
+        const margin = {
+            top: 40,
+            bottom: 10,
+            left: 20,
+            right: 20
+        };
+        const bodyWidth = 1000;
+        const bodyHeight = 450;
+        const radius = 10;
+
+        var points = [];
+
+        var xScale = d3.scaleLinear().range([0,bodyWidth])
+            .domain([0,bodyWidth]);
+        var yScale = d3.scaleLinear().range([0,bodyHeight])
+            .domain([0,bodyHeight]);
+        
+
+        var svg = d3.select('body')
+            .append('svg')
+            .attr('width', bodyWidth)
+            .attr('height', bodyHeight)
+            .style('margin', '40px')
+            .style('border', '1px solid black');
+            
+        var drag = d3.drag()
+            .subject(function(d) {return d;})
+            .on('start', dragstarted)
+            .on('drag', dragmove)
+            
+            .on('end', dragended)
+
+        svg.on('click', function(){
+            if (d3.event.defaultPrevented) return;
+            let mouse = d3.mouse(this);
+            point = {
+                x: Math.round(xScale(mouse[0])),
+                y: Math.round(yScale(mouse[1])),
+            }
+            points.push(point);            
+            console.log(point);
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                .call(drag);
+        })
+
+        function handleDeleteRightClick(d, i) {
+            d3.event.preventDefault();
+            d3.select(this).remove();
+            points.pop(i);         
+        }
+
+        function generateRandomPoints(){
+            let tmpPoint = {};
+            for (let i = 0; i < 5; i++) {
+                tmpPoint = {
+                    x: Math.round(xScale(Math.random() * (bodyWidth - radius * 2) + radius)),
+                    y: Math.round(xScale(Math.random() * (bodyHeight - radius * 2) + radius)),
+                }
+                points.push(tmpPoint);                
+            }
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                .call(drag);
+        }
+
+
+        function clearCanvas(){
+            points = [];
+            d3.select('svg').selectAll('*').remove();
+        }
+
+        function clearLines(){
+            result = [];
+            d3.select('svg').selectAll('line').remove();
+        }
+
+        function dragstarted(d) {
+            d3.event.sourceEvent.stopPropagation();
+            console.log(d);
+            d3.select(this).raise().attr('fill', 'green');
+        }
+
+        function dragmove(d) {
+            d3.select(this).attr('cx', d.x = d3.event.x).attr('cy', d.y = d3.event.y);
+        }
+
+        function dragended(d) {
+            d3.select(this).attr('fill', 'black');
+            console.log(d);
+            console.log(points);
+        }
+
+        var result = [];
+        
+        function giftWrapping(){
+            if (points.length === 0) {
+                return;
+            }
+            
+            clearLines()
+        
+            let tmpPoint = points[0];
+            function rightMostPoint(){
+                points.forEach(element => {
+                    element.x > tmpPoint.x ? tmpPoint = element : tmpPoint;
+                });
+                return tmpPoint;
+            }
+            tmpPoint = rightMostPoint();
+            console.log(tmpPoint);
+
+            result.push(tmpPoint);
+            var currentPoint = result[0];
+            var pointToDraw = currentPoint;
+            j = 0;
+            while (true) {
+                nextPoint = points[0];
+                for (let i = 0; i < points.length; i++) {
+                    if(points[i] == currentPoint) {
+                        // console.log('same point');
+                        continue;
+                    }                    
+                    side = crossProdOrientation(currentPoint, nextPoint, points[i]);
+                    // console.log(side);
+                    if(side === 0) {
+                        nextPoint = points[i];
+                    }
+                    else if(side < 0) {
+                        nextPoint = points[i];
+                    }
+                    else{}
+                }
+                if(nextPoint === tmpPoint){
+                    console.log('break');
+                    drawLine(pointToDraw,nextPoint);
+                    break;
+                }
+                j++;
+                result.push(nextPoint);
+                currentPoint = nextPoint;
+                drawLine(pointToDraw,currentPoint);
+                pointToDraw = nextPoint;
+            }        
+            console.log(result);
+        }
+
+        function crossProdOrientation(a, b, c){
+            return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x));
+        }
+
+        function drawLine(a,b){
+            svg.append('line')
+                    .style('stroke', 'black')
+                    .attr('x1', xScale(a.x))
+                    .attr('y1', xScale(a.y))
+                    .attr('x2', xScale(b.x))
+                    .attr('y2', xScale(b.y));
+        }
+
+
+    </script>
+</html>
