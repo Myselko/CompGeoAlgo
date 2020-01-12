@@ -5,6 +5,9 @@
         <link rel="stylesheet" href="style.css"/>
         <script src="https://d3js.org/d3.v5.min.js"></script>
         <script src="GrahamScan.js"></script>
+        <script src="GiftWrapping.js"></script>
+        <script src="Triangulation.js"></script>
+        <script src="KdTree.js"></script>
         <style>
             body {
                 margin: auto;
@@ -29,6 +32,7 @@
             <button type="button" onclick=clearCanvas()>Clear Canvas</button>
             <button type="button" onclick=giftWrapping2()>Gift Wrapping</button>
             <button type="button" onclick=grahamScan()>Graham Scan</button>
+            <button type="button" onclick=createKDTree()>K-D tree</button>
             <button type="button" onclick=triangulation()>Triangulation</button>
 
         </div>
@@ -234,53 +238,6 @@
             }        
             console.log(resultLine);
         }
-
-
-        function giftWrapping2(){
-            if (points.length === 0) {
-                return;
-            }
-            clearLines();
-        
-            let beginningPoint = points[0];
-            function rightMostPoint(){
-                points.forEach(element => {
-                    beginningPoint = element.x > beginningPoint.x ? element : beginningPoint;
-                });
-                return beginningPoint;
-            }
-            
-            beginningPoint = rightMostPoint();          
-            resultLine.push(beginningPoint);
-            let startingPoint = {x:beginningPoint.x, y:bodyHeight};
-            let mutualPoint = beginningPoint;
-            let maxAngle = 0;
-            let newNextPoint = points[0];
-            let tmpAngle = computeAngle(startingPoint,mutualPoint,newNextPoint);
-            let i = 0;
-            while(true){
-                points.forEach(nextPoint => {
-                    tmpAngle = computeAngle(startingPoint,mutualPoint,nextPoint);
-                    if(isNaN(tmpAngle) || tmpAngle === 0){return;}                                
-                    if (tmpAngle > maxAngle){
-                        maxAngle = tmpAngle;
-                        newNextPoint = nextPoint;
-                    };                    
-                    console.log(maxAngle * (180/Math.PI))
-                });
-                console.log('startingPoint', startingPoint,'mutualPoint ',mutualPoint, 'newNextPoint ',newNextPoint)
-                drawLine(mutualPoint,newNextPoint);
-                if (newNextPoint === beginningPoint){console.log('break'); break;}
-                startingPoint = mutualPoint;
-                mutualPoint = newNextPoint;
-                newNextPoint = points[0];
-                maxAngle = 0;
-                i++;
-            }
-        }
-
-
-
 
 
         function crossProdOrientation(a, b, c){

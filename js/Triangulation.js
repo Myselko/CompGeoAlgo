@@ -1,17 +1,12 @@
 function triangulation(){
     grahamScan();
-    console.log(points,stack, edges);
-    
     //remove other points inside hull
     //remove lines
     //sort
     stack.sort(sortPoints);
-    console.log(stack);
     let firstP = stack[0];
     let lastP = stack[stack.length-1];
-    let leftPath = [];            
-    let rightPath = [];
-    let tmpPoint = null;
+    let leftPath, rightPath = [];            
     let lineStack = [];
     
     edges.forEach(element => {
@@ -31,28 +26,19 @@ function triangulation(){
         }
         else{}
     });
-    
-    console.log('left: ',leftPath);
-    console.log('right: ',rightPath);
+    //console.log('left: ',leftPath);
+    //console.log('right: ',rightPath);
 
     lineStack.push(stack[0]);
     lineStack.push(stack[1]);
     //we expect that we have correct convex hull
-    let nextElem;
-    let nextElemPath;
+    let nextElem, nextElemPath;
     let stackElemPath = checkPath(lineStack[1],rightPath);
     for (let i = 2; i < stack.length; i++) {
-        
         nextElem = stack[i];
-        
         //right - 1, left - 0
         nextElemPath = checkPath(nextElem,rightPath);
-
-        console.log(lineStack[lineStack.length-1]);
-        console.log(nextElem);
-        console.log(nextElemPath);
-        console.log(stackElemPath);
-
+        
         if(nextElemPath === stackElemPath){
             for (let i = lineStack.length - 1; i > 0; i--){
                 drawLine(nextElem,lineStack[i]);
