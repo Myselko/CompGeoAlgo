@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="style.css"/>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="Edge.js"></script>
+        <script src="Triangle.js"></script>
+        <style>
+            body {
+                margin: auto;
+                position: relative;
+            }
+            button {
+                /* position: relative;
+                float: right; */
+            }
+            .container {
+                position: relative;
+                float: right;
+                height: 100px;
+                width: 550px;
+                background-color: white
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <button type="button" onclick=generateRandomPoints()>Generate Random Points</button>
+            <button type="button" onclick=clearCanvas()>Clear Canvas</button>
+            <button type="button" onclick=delaunayTriangulation()>Delaunay triang</button>
+            <button type="button" onclick=voronoiDiagram()>Voronoi diagram</button>
+
+        </div>
+    </body>
+    <script>
+
+        const margin = {
+            top: 40,
+            bottom: 10,
+            left: 20,
+            right: 20
+        };
+        const bodyWidth = 1000;
+        const bodyHeight = 450;
+        const radius = 5;
+
+        var points = [];
+
+        var xScale = d3.scaleLinear().range([0,bodyWidth])
+            .domain([0,bodyWidth]);
+        var yScale = d3.scaleLinear().range([0,bodyHeight])
+            .domain([0,bodyHeight]);
+        
+
+        var svg = d3.select('body')
+            .append('svg')
+            .attr('width', bodyWidth)
+            .attr('height', bodyHeight)
+            .style('margin', '40px')
+            .style('border', '1px solid black');
+            
+        var drag = d3.drag()
+            .subject(function(d) {return d;})
+            .on('start', dragstarted)
+            .on('drag', dragmove)
+            .on('end', dragended);
+
+        svg.on('click', function(){
+            if (d3.event.defaultPrevented) return;
+            let mouse = d3.mouse(this);
+            point = {
+                x: Math.round(xScale(mouse[0])),
+                y: Math.round(yScale(mouse[1])),
+            }
+            points.push(point);         
+            console.log('click ', point);
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                // .on("mouseover", handleMouseOver)
+                // .on("mouseout", handleMouseOut)
+                .call(drag);
+        })
+
+        function handleDeleteRightClick(d, i) {
+            d3.event.preventDefault();
+            d3.select(this).remove();
+            points.pop(i);         
+        }
+
+        function generateRandomPoints(){
+            let tmpPoint = {};
+            for (let i = 0; i < 5; i++) {
+                tmpPoint = {
+                    x: Math.round(xScale(Math.random() * (bodyWidth - radius * 2) + radius)),
+                    y: Math.round(xScale(Math.random() * (bodyHeight - radius * 2) + radius)),
+                }
+                points.push(tmpPoint);                
+            }
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                // .on("mouseover", handleMouseOver)
+                // .on("mouseout", handleMouseOut)
+                .call(drag);
+        }
+
+
+        function clearCanvas(){
+            points = [];
+            stack = [];
+            d3.select('svg').selectAll('*').remove();
+        }
+
+        function clearLines(){
+            resultLine = [];
+            d3.select('svg').selectAll('line').remove();
+        }
+
+        function dragstarted(d) {
+            d3.event.sourceEvent.stopPropagation();
+            console.log('drag started ',d[0],' ',points);
+            d3.select(this).raise().attr('fill', 'green');
+        }
+
+        function dragmove(d) {
+            d3.select(this).attr('cx', d.x = d3.event.x).attr('cy', d.y = d3.event.y);
+        }
+
+        function dragended(d) {
+            d3.select(this).attr('fill', 'black');
+            console.log('drag ended ',d[0],' ',points);
+        }
+
+        // Create Event Handlers for mouse NOT WORKING
+        function handleMouseOver(d, i) {  // Add interactivity
+            //!!NOT WORKING
+            console.log(d,i);
+            // Use D3 to select element, change color and size
+            // d3.select(this).attr({
+            //   fill: "orange",
+            //   r: radius * 2
+            // });
+
+            // Specify where to put label of text
+            svg.append("text").attr({
+            id: "t" + d.x + "-" + d.y + "-" + i,  // Create an id for text so we can select it later for removing on mouseout
+                x: function() { return xScale(d.x) - 30; },
+                y: function() { return yScale(d.y) - 15; }
+            })
+            .text(function() {
+            return [d.x, d.y];  // Value of the text
+            });
+        }
+
+        function handleMouseOut(d, i) {
+            //!!NOT WORKING
+            console.log(d,i);
+
+            // Use D3 to select element, change color back to normal
+            d3.select(this).attr({
+            fill: "black",
+            r: radius
+            });
+
+            // Select text by id and then remove
+            d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
+        }
+       
+        
+        function drawLine(a,b, color='black'){
+            svg.append('line')
+                    .style('stroke', 'black')
+                    .attr('x1', xScale(a.x))
+                    .attr('y1', xScale(a.y))
+                    .attr('x2', xScale(b.x))
+                    .attr('y2', xScale(b.y))
+                    .style('stroke',color)
+                    ;
+        }
+
+        function drawCircle(c, color = 'red'){
+            svg.append('circle')
+                .attr('cx', xScale(c.center.x))
+                .attr('cy', xScale(c.center.y))
+                .attr('r', xScale(c.radius))
+                .style('stroke',color)
+                .style('fill','none');
+        }
+
+        function sortPoints(a,b,horiz){
+            if(horiz){
+                if(a.x < b.x) {return -1;}
+                if(a.x > b.x) {return 1;}
+                else {return 0;}
+            }
+            else{
+                if(a.y < b.y) {return -1;}
+                if(a.y > b.y) {return 1;}
+                else {return 0;}
+            }
+        }
+
+        var point = {
+            x:null,
+            y:null,
+        }
+
+        var edge = {
+            a:null,//point a
+            b:null,//point b
+            opposite:null,//opposite edge
+            next:null,//next edge
+        }
+
+        var oppositeEdge = {}
+        
+        var circle = {
+            center:null,
+            radius:0,
+        }
+        //a - from
+        //b - middle (point for which we finding orientation)
+        //c - to
+        function crossProdOrientation(a, b, c){
+            return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x));
+        }
+
+
+        //calculates circle from three points
+        function calculateCircle(p1,p2,p3){
+            
+            let cp = 0;
+            let d = 0;
+            cp = 2*crossProdOrientation(p1,p2,p3);
+            // d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
+            // console.log(d);
+            if(cp == 0) return;
+            let p1Sq = 0;
+            let p2Sq = 0;
+            let p3Sq = 0;
+            let num = 0;
+            let num2 = 0;
+            let cx = 0;
+            let cy = 0;
+            let centerPoint;
+
+            p1Sq = Math.pow(p1.x,2) + Math.pow(p1.y,2);
+            p2Sq = Math.pow(p2.x,2) + Math.pow(p2.y,2);
+            p3Sq = Math.pow(p3.x,2) + Math.pow(p3.y,2);
+
+            num = p1Sq*(p2.y - p3.y) + p2Sq*(p3.y - p1.y) + p3Sq*(p1.y - p2.y);
+            cx = num/(cp);
+            num2 = p1Sq*(p3.x - p2.x) + p2Sq*(p1.x - p3.x) + p3Sq*(p2.x - p1.x);
+            cy = num2 / (cp);
+            centerPoint = {
+                x:cx,
+                y:cy,
+            }
+            circle = {
+                center:centerPoint,
+                radius:distance(centerPoint,p1),
+            }
+            return circle;
+        }
+
+        //test if point p lies inside circle with center in point center
+        function insideCircle(center,p,circle){
+            if(Math.pow(distance(center,p),2) < Math.pow(circle.radius,2)){
+                return true;
+            }
+            else
+                return false;
+        }
+
+        //returns distance between two points
+        function distance(a,b){
+            return Math.sqrt(Math.pow(a.x - b.x,2) + Math.pow(a.y - b.y,2));
+        }
+
+        //returns delaunay distance
+        //a - first point of edge
+        //b - second point of edge
+        //p - point for which we look for a distance
+        //s - middle of the circle
+        function delaunayDistance(a,b,p,s){
+            pDistance = distance(p,s);
+            pSide = crossProdOrientation(a,p,b) > 0;
+            sSide = crossProdOrientation(a,s,b) > 0;
+            if (pSide === sSide){
+                return pDistance;
+            }
+            else
+                return pDistance * -1;
+        }
+
+        var minDelDistance = Infinity;
+        var tmpDelDistance = null;
+        var tmpCircle = null;
+        var bestCircle = null;
+        var newPoint = null;
+        var noPoint = null;
+        var circleCenters = [];
+        var triangles = [];
+        var dt = [];
+
+
+        function findShortestDelDistance(p,edge){
+            minDelDistance = Infinity;
+            tmpDelDistance = null;
+            tmpCircle = null;
+            bestCircle = null;
+            newPoint = null;
+            noPoint = null;
+            p.forEach( (el) => {
+                let crsProd = crossProdOrientation(edge.from,el,edge.to);
+                //we are looking only for points situated on the left from the edge
+                if (crsProd > 0){
+                    noPoint = true;
+                    //left
+                    //calculate delaunay distance
+                    console.log('left ',p,edge);
+                    tmpCircle = calculateCircle(edge.from,edge.to,el);
+                    tmpDelDistance = delaunayDistance(edge.from, edge.to, el,circle.center);                    
+                    //if its smaller than minimum assing it to min
+                    if (tmpDelDistance < minDelDistance){
+                        minDelDistance = tmpDelDistance;
+                        bestCircle = tmpCircle;
+                        newPoint = el;
+                    }
+                    //drawCircle(tmpCircle);
+                }
+                else if (crsProd === 0){
+                    console.log('on line');
+                    //on the line
+                }
+                else { // < 0
+                    console.log('right');
+                    //right
+                }
+            })
+        }
+
+        function addToAEL(edge,ael,dt){
+            let isInAEL = false;
+            let isInDT = false;
+            ael.forEach( (el) => {
+                if(el.isSameEdge(edge.from,edge.to))
+                    isInAEL = true;
+            })
+            dt.forEach( (el) => {
+                if(el.isSameEdge(edge.from,edge.to))
+                    isInAEL = true;
+            })
+            if(!isInAEL && !isInDT)
+                ael.push(edge);
+            else console.log('edge is in list!', edge);
+        }
+
+
+        function delaunayTriangulation(){
+            //sort points based on x axis
+            points.sort((a,b) => {
+                return a.x - b.x;
+            })
+            //create AEL
+            var ael = [];
+            
+            let tmpPoint;
+            let dist = 0;
+            let minDistance = Infinity;
+            let nextPoint;
+
+            //pick first point (left most point)
+            if (points.length < 3) {return;}
+            tmpPoint= points[0];
+            
+            //pick nearest point
+            points.forEach((element)=>{
+                if(element === tmpPoint) return;
+                dist = distance(tmpPoint,element);
+                if(dist < minDistance){
+                    minDistance = dist;
+                    nextPoint = element;
+                }
+            })
+
+            //create edge
+            edge = new Edge(tmpPoint,nextPoint);
+            oppositeEdge = edge.newOpposite();
+            oppositeEdge.oppositeEdge = edge;
+            edge.oppositeEdge = oppositeEdge;
+            
+            
+            let tmpEdge = null;
+            let triangIndex = 0;
+            findShortestDelDistance(points,edge);
+            //add all three edges to the list of active edges AEL
+            if (noPoint){     
+                //edge.opposite = true;
+                edge.triangle = triangIndex;
+                
+                //ael.push(edge);
+                let edge2 =  new Edge(edge.to,newPoint,triangIndex);
+                let edge3 =  new Edge(newPoint, edge.from,triangIndex);
+                edge.next = edge2;
+                edge2.next = edge3;
+                edge3.next = edge;
+                ael.push(edge);
+                ael.push(edge2);
+                ael.push(edge3);
+                triangles.push(new Triangle(edge,edge2,edge3));
+                dt.push(edge);
+            }
+            else {
+                console.log('opposite');
+                findShortestDelDistance(points,oppositeEdge);
+                //ael.push(oppositeEdge);
+                oppositeEdge.triangle = triangIndex;
+                let edge2 =  new Edge(oppositeEdge.to,newPoint,triangIndex);
+                let edge3 =  new Edge(newPoint, oppositeEdge.from,triangIndex);
+                oppositeEdge.next = edge2;
+                edge2.next = edge3;
+                edge3.next = oppositeEdge;
+                ael.push(edge2);
+                ael.push(edge3);
+                triangles.push(new Triangle(oppositeEdge,edge2,edge3));
+                oppositeEdge.opposite = false;
+                dt.push(oppositeEdge);
+            }
+            
+            drawCircle(bestCircle,'green');
+            circleCenters.push(bestCircle);
+            triangles[0].circle = bestCircle;
+            
+            //while AEL is not empty do
+            while (ael.length){                
+                
+                
+                let currentEdge = ael.pop();
+                let oppEdge1 = currentEdge.newOpposite();
+                oppEdge1.oppositeEdge = currentEdge;
+                currentEdge.oppositeEdge = oppEdge1;
+                findShortestDelDistance(points,oppEdge1);
+                if (noPoint){
+                    triangIndex++;
+                    currentEdge.triangle = triangIndex;                    
+                    let edge2 = new Edge(oppEdge1.to,newPoint,triangIndex);
+                    let edge3 = new Edge(newPoint, oppEdge1.from,triangIndex);
+                    oppEdge1.next = edge2;
+                    edge2.next = edge3;
+                    edge3.next = oppEdge1;
+                    
+                    
+                    //let oppEdge2 =  edge2.newOpposite();
+                    //let oppEdge3 =  edge3.newOpposite();
+                    addToAEL(edge2,ael,dt);
+                    addToAEL(edge3,ael,dt);
+                    drawCircle(bestCircle,'green');
+                    circleCenters.push(bestCircle);
+                    triangles.push(new Triangle(oppEdge1,edge2,edge3,bestCircle));
+                }
+                else currentEdge.opposite = false;
+                dt.push(currentEdge);
+                //dt.push(edge2);
+                //dt.push(edge3);
+                //console.log('AEL: ',ael);
+            }
+            console.log(dt);
+            //console.log(circleCenters);
+            // console.log(triangles);
+            dt.forEach( (el) => {
+                drawLine(el.from,el.to);
+            })
+        }
+
+
+        function normalize(val,len){
+            if (len === 0){
+                return {x:1,y:0}
+            }
+            else {
+                return {x: val.x/=len, y: val.y/=len}
+            }
+        }
+
+        function checkBorderEdge(edge,center){
+            if(edge.opposite) return;
+            let middle = {x: edge.from.x + edge.to.x, y: edge.from.y + edge.to.y};
+            middle.x = middle.x/2;
+            middle.y = middle.y/2;
+            let len = Math.sqrt(middle.x * middle.x + middle.y * middle.y);
+            let direction = {x: middle.x - center.x, y: middle.y - center.y};
+            direction = normalize(direction,len);
+            direction.x *= 10000;
+            direction.y *= 10000;
+
+            if(crossProdOrientation(edge.from, edge.to, center) > 0){
+                direction.x *= -1;
+                direction.y *= -1;
+            }
+            let outsidePoint = {x:center.x + direction.x, y:center.y + direction.y};
+            drawLine(center,outsidePoint,'orange');
+        }
+
+        function checkNeighbour(edge,toProcess,processedEdges,c){
+            //zisti ci je hranicna hrana
+            if (edge === null) return;
+            let isSame = false;
+            //zisti ci je v processed
+            processedEdges.forEach((el) => {
+                if (el.isSame(edge.from,edge.to)) isSame = true;
+            })
+            if (isSame){
+                console.log('includes');
+                return;
+            }
+            // if (processedEdges.includes(edge)){ console.log('includes'); return}
+            if (edge.next !== null){
+            //najdi trojuholnik ku ktoremu patri
+            //sprav do jeho taziska ciaru
+            //pridaj hrany/triuholnik do toProcess
+                let nextCenter = calculateCircle(edge.from,edge.to,edge.next.to);
+                drawLine(nextCenter.center,c,'blue');
+                toProcess.push(edge);
+                console.log('neighbours ',edge);
+            }
+        }
+
+
+        function voronoiDiagram(){
+            //ohnisko (stred kruznice) patriace nejakemu trojuholniku
+            //ak ma s nejakym inym spolocnu hranu tak spojim tieto ohniska
+            delaunayTriangulation();
+
+            //iterate throught triangles
+            //add all of the edges of triangle to processedEdges
+            //checkni susedne trojuholniky
+            //otestujem ci uz neboli spracovane alebo ci ma opacnu hranu
+            //vezmes hranu vyhladam ju v trojuholnikoch - dostanem trojuholnik
+            //ak nie tak je hranicna
+            let processedEdges = [];
+            let toProcess = [];
+            let currentTriangle = triangles[0];
+            let edge1 = dt[0];
+            console.log(edge1);
+            //let edgeToProcess;
+            //do toProcess dam prvy trojuholnik/hranu?
+            //vlozim cely trojuholnik/vsetky hrany od processedEdges
+            //ceknem susedne hrany/trojuholniky
+            //ak neboli este spracovane tak ich pridam do toProcess
+            
+            //toProcess.push(triangles[0]);
+            let edge2 = edge1.next;
+            let edge3 = edge2.next;
+            let firstCircle = calculateCircle(edge1.from,edge1.to,edge2.to);
+            
+            processedEdges.push(edge1,edge2,edge3);
+            
+            checkNeighbour(edge1.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+            
+            checkNeighbour(edge2.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+            checkNeighbour(edge3.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+
+            checkBorderEdge(edge1,firstCircle.center);
+            checkBorderEdge(edge2,firstCircle.center);
+            checkBorderEdge(edge3,firstCircle.center);
+
+            while (toProcess.length > 0){
+                let edge1 = toProcess.pop();
+                let edge2 = edge1.next;
+                let edge3 = edge2.next;
+                let firstCircle = calculateCircle(edge1.from,edge1.to,edge2.to);
+                processedEdges.push(edge1,edge2,edge3);                
+                checkNeighbour(edge1.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+                checkNeighbour(edge2.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+                checkNeighbour(edge3.oppositeEdge,toProcess,processedEdges,firstCircle.center);
+                //pushto processed
+                //checkNeighbour
+                checkBorderEdge(edge1,firstCircle.center);
+                checkBorderEdge(edge2,firstCircle.center);
+                checkBorderEdge(edge3,firstCircle.center);
+                
+                //console.log(processedEdges);
+                //console.log(toProcess);
+                //
+            }
+
+        }
+        
+        
+    </script>
+</html>

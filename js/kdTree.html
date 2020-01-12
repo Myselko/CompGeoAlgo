@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="style.css"/>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <style>
+            body {
+                margin: auto;
+                position: relative;
+            }
+            button {
+                /* position: relative;
+                float: right; */
+            }
+            .container {
+                position: relative;
+                float: right;
+                height: 100px;
+                width: 550px;
+                background-color: white
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <button type="button" onclick=generateRandomPoints()>Generate Random Points</button>
+            <button type="button" onclick=clearCanvas()>Clear Canvas</button>
+            <button type="button" onclick=createKDTree()>Create K-D</button>
+
+        </div>
+    </body>
+    <script>
+
+        const margin = {
+            top: 40,
+            bottom: 10,
+            left: 20,
+            right: 20
+        };
+        const bodyWidth = 1000;
+        const bodyHeight = 450;
+        const radius = 5;
+
+        var points = [];
+
+        var xScale = d3.scaleLinear().range([0,bodyWidth])
+            .domain([0,bodyWidth]);
+        var yScale = d3.scaleLinear().range([0,bodyHeight])
+            .domain([0,bodyHeight]);
+        
+
+        var svg = d3.select('body')
+            .append('svg')
+            .attr('width', bodyWidth)
+            .attr('height', bodyHeight)
+            .style('margin', '40px')
+            .style('border', '1px solid black');
+            
+        var drag = d3.drag()
+            .subject(function(d) {return d;})
+            .on('start', dragstarted)
+            .on('drag', dragmove)
+            .on('end', dragended);
+
+        svg.on('click', function(){
+            if (d3.event.defaultPrevented) return;
+            let mouse = d3.mouse(this);
+            point = {
+                x: Math.round(xScale(mouse[0])),
+                y: Math.round(yScale(mouse[1])),
+            }
+            points.push(point);         
+            console.log('click ', point);
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                // .on("mouseover", handleMouseOver)
+                // .on("mouseout", handleMouseOut)
+                .call(drag);
+        })
+
+        function handleDeleteRightClick(d, i) {
+            d3.event.preventDefault();
+            d3.select(this).remove();
+            points.pop(i);         
+        }
+
+        function generateRandomPoints(){
+            let tmpPoint = {};
+            for (let i = 0; i < 5; i++) {
+                tmpPoint = {
+                    x: Math.round(xScale(Math.random() * (bodyWidth - radius * 2) + radius)),
+                    y: Math.round(xScale(Math.random() * (bodyHeight - radius * 2) + radius)),
+                }
+                points.push(tmpPoint);                
+            }
+
+            svg.selectAll("circle")
+                .data(points)
+                .enter()
+                .append('circle')                
+                .attr('r',radius)
+                .attr('cx', function(d) {return xScale(d.x) })
+                .attr('cy', function(d) {return yScale(d.y) })
+                .on('contextmenu', handleDeleteRightClick)
+                // .on("mouseover", handleMouseOver)
+                // .on("mouseout", handleMouseOut)
+                .call(drag);
+        }
+
+
+        function clearCanvas(){
+            points = [];
+            stack = [];
+            d3.select('svg').selectAll('*').remove();
+        }
+
+        function clearLines(){
+            resultLine = [];
+            d3.select('svg').selectAll('line').remove();
+        }
+
+        function dragstarted(d) {
+            d3.event.sourceEvent.stopPropagation();
+            console.log('drag started ',d[0],' ',points);
+            d3.select(this).raise().attr('fill', 'green');
+        }
+
+        function dragmove(d) {
+            d3.select(this).attr('cx', d.x = d3.event.x).attr('cy', d.y = d3.event.y);
+        }
+
+        function dragended(d) {
+            d3.select(this).attr('fill', 'black');
+            console.log('drag ended ',d[0],' ',points);
+        }
+
+        // Create Event Handlers for mouse NOT WORKING
+        function handleMouseOver(d, i) {  // Add interactivity
+            //!!NOT WORKING
+            console.log(d,i);
+            // Use D3 to select element, change color and size
+            // d3.select(this).attr({
+            //   fill: "orange",
+            //   r: radius * 2
+            // });
+
+            // Specify where to put label of text
+            svg.append("text").attr({
+            id: "t" + d.x + "-" + d.y + "-" + i,  // Create an id for text so we can select it later for removing on mouseout
+                x: function() { return xScale(d.x) - 30; },
+                y: function() { return yScale(d.y) - 15; }
+            })
+            .text(function() {
+            return [d.x, d.y];  // Value of the text
+            });
+        }
+
+        function handleMouseOut(d, i) {
+            //!!NOT WORKING
+            console.log(d,i);
+
+            // Use D3 to select element, change color back to normal
+            d3.select(this).attr({
+            fill: "black",
+            r: radius
+            });
+
+            // Select text by id and then remove
+            d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
+        }
+       
+        
+        function drawLine(a,b){
+            svg.append('line')
+                    .style('stroke', 'black')
+                    .attr('x1', xScale(a.x))
+                    .attr('y1', xScale(a.y))
+                    .attr('x2', xScale(b.x))
+                    .attr('y2', xScale(b.y));
+        }
+
+        function sortPoints(a,b,horiz){
+            if(horiz){
+                if(a.x < b.x) {return -1;}
+                if(a.x > b.x) {return 1;}
+                else {return 0;}
+            }
+            else{
+                if(a.y < b.y) {return -1;}
+                if(a.y > b.y) {return 1;}
+                else {return 0;}
+            }
+        }
+
+        function kdTree(points, depth, verStart, verEnd, horStart, horEnd){
+            //http://joeloughton.com/blog/programming/kd-tree-in-javascript/
+            let axis, median, node = {};
+            let left, rightP = [];
+            if (points.length < 1){return null;}
+            
+            else {
+                median = Math.floor(points.length / 2);
+                console.log(median);
+                console.log(points);
+                node.value = points[median];
+                console.log(node.value, points[median]);
+                leftP = points.slice(0,median);
+                rightP = points.slice(median+1);
+                //horiz
+                axis = depth % 2;
+                if (axis){                    
+                    drawLine({x:horStart, y:node.value.y},{x:horEnd, y:node.value.y});
+                    leftP.sort((a,b) => {
+                        return a.x - b.x
+                    })
+                    rightP.sort((a,b) => {
+                        return a.x - b.x
+                    })
+                    
+                    
+                    node.left = kdTree(leftP, depth+1, verStart, node.value.y, horStart, horEnd);
+                    node.right = kdTree(rightP, depth+1, node.value.y, verEnd, horStart, horEnd);
+                }
+                //vert
+                else{
+                    drawLine({x:node.value.x, y:verStart},{x:node.value.x, y:verEnd});
+                    rightP.sort((a,b) => {
+                        return a.y - b.y
+                    })
+                    leftP.sort((a,b) => {
+                        return a.y - b.y
+                    })
+                    
+                    
+                    node.left = kdTree(leftP, depth+1, verStart, verEnd, horStart, node.value.x);
+                    node.right = kdTree(rightP, depth+1, verStart, verEnd, node.value.x, horEnd);    
+                }
+                
+                // node.left = kdTree(leftP, depth+1);
+                // node.right = kdTree(rightP, depth+1);
+                return node;
+            }
+        }
+
+        function createKDTree(){
+            points.sort((a,b) => {
+                return a.x - b.x;
+            });
+            //find median
+            let tree = kdTree(points,0,0,bodyHeight,0,bodyWidth);
+            console.log(tree);
+        }        
+
+
+
+        // function kdTree(points, depth){
+        //     //http://joeloughton.com/blog/programming/kd-tree-in-javascript/
+        //     let axis, median, node = {};
+        //     if (points.length < 1){return null;}
+            
+        //     else {
+        //         //horiz
+        //         axis = depth % 2;
+        //         if (axis){
+        //             points.sort((a,b) => {
+        //                 return a.y - b.y
+        //             })
+        //         }
+        //         //vert
+        //         else{
+        //             points.sort((a,b) => {
+        //                 return a.x - b.x
+        //             })
+        //         }
+        //         median = Math.floor(points.length / 2);
+        //         node.value = points[median];
+        //         node.left = kdTree(points.slice(0,median),depth+1);
+        //         node.right = kdTree(points.slice(median+1),depth+1);
+        //         return node;
+        //     }
+        // }
+
+        // function createKDTree(){
+        //     let kdPoints = points.sort((a,b) => {
+        //         return a.x - b.x;
+        //     });
+        //     console.log(kdPoints);
+        //     //find median
+        //     let tree = kdTree(points,0);
+        //     console.log(tree);
+        // }        
+    </script>
+</html>
