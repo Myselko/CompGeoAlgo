@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <link rel="stylesheet" href="style.css"/>
         <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="GrahamScan.js"></script>
         <style>
             body {
                 margin: auto;
@@ -44,10 +45,6 @@
         const bodyHeight = 450;
         const radius = 5;
         var edges = [];
-        var edge = {
-            a: {},
-            b: {},
-        };
         var points = [];
         var resultLine = [];
         var stack = [];
@@ -310,100 +307,6 @@
                     .attr('x2', xScale(b.x))
                     .attr('y2', xScale(b.y));
         }
-
-        function grahamScan(){
-            
-            if (points.length === 0) {
-                return;
-            }
-            clearLines();
-            
-            let beginningPoint = points[0];
-            
-            stack = [];
-            edges = [];
-            
-            
-            function rightMostPoint(){
-                points.forEach(element => {
-                    beginningPoint = element.x > beginningPoint.x ? element : beginningPoint;
-                });
-                return beginningPoint;
-            }
-            beginningPoint = rightMostPoint();
-            console.log('beginning point ',beginningPoint);
-            
-            let newNextPoint;
-            let newNextPointIndex;
-            let maxAngle = 0;
-            let startingPoint = {x:beginningPoint.x, y:bodyHeight};
-            let mutualPoint = beginningPoint;
-            let tmpAngle = 0;
-            let tmpPoints = [...points];
-            let orderedPoints = [];
-            orderedPoints.push(beginningPoint);
-            
-            while (tmpPoints.length > 1){
-                tmpPoints.forEach((nextPoint,index) => {
-                    tmpAngle = computeAngle(startingPoint,mutualPoint,nextPoint);
-                    if(isNaN(tmpAngle) || tmpAngle === 0){return;}                                
-                    if (tmpAngle > maxAngle){
-                        maxAngle = tmpAngle;
-                        newNextPoint = nextPoint;
-                        newNextPointIndex = index;
-                    };
-                    // console.log('angle ',tmpAngle * (180/Math.PI), 'point ',nextPoint, 'index ', index);
-                });
-                // console.log('maxAngle ',maxAngle * (180/Math.PI), 'newnextPoint ',newNextPoint, 'newnextindex ', newNextPointIndex);
-                tmpPoints.splice(newNextPointIndex,1);                
-                orderedPoints.push(newNextPoint);
-                maxAngle = 0;
-
-            }
-            console.log(orderedPoints);
-
-            
-            // stack.push(beginningPoint);
-            // stack.push(orderedPoints[0]);
-            let first = beginningPoint;
-            let second = orderedPoints[1];
-            let j = 2;
-            let side;
-            while (j < orderedPoints.length){
-                side = crossProdOrientation(first,second,orderedPoints[j]);
-                if(side === 0) {
-                    stack.push(first);                    
-                    first = second;
-                    second = orderedPoints[j];                                
-                    j++;
-                }
-                else if(side < 0) {
-                    stack.push(first);                    
-                    first = second;
-                    second = orderedPoints[j];
-                    j++;
-                }
-                else{
-                    //console.log('remove poping: ',first);
-                    second = first;
-                    first = stack.pop();
-                    
-                }
-            }
-            stack.push(first);
-            stack.push(second);
-            console.log(stack);
-
-            for (let i = 0; i < stack.length -1; i++){
-                drawLine(stack[i],stack[i+1]);
-                edge = {a:stack[i],b:stack[i+1]};
-                edges.push(edge);
-            }
-            drawLine(stack[stack.length-1],stack[0]);
-            edge = {a:stack[stack.length-1],b:stack[0]};
-            edges.push(edge);
-        }
-
 
         function sortPoints(a,b){
             if(a.y < b.y) {return -1;}
