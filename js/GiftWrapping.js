@@ -1,3 +1,16 @@
+// p1 - tmpPoint, a
+// p2 - mutualPoint, b
+// p3 - tryPoint, c
+function computeAngle(p1, p2, p3){
+    // //* (180/Math.PI); for angledegree
+    // return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    let ab = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    let bc = Math.sqrt(Math.pow(p2.x - p3.x, 2) + Math.pow(p2.y - p3.y, 2));
+    let ac = Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.y - p1.y, 2));
+    return Math.acos((bc*bc+ab*ab-ac*ac)/(2*bc*ab));
+}
+
+
 function giftWrapping2(){
     if (points.length === 0) {
         return;

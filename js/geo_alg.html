@@ -8,6 +8,11 @@
         <script src="GiftWrapping.js"></script>
         <script src="Triangulation.js"></script>
         <script src="KdTree.js"></script>
+        <script src="Edge.js"></script>
+        <script src="Triangle.js"></script>
+        <script src="Delaunay.js"></script>
+        <script src="Utils.js"></script>
+        <script src="Voronoi.js"></script>
         <style>
             body {
                 margin: auto;
@@ -34,6 +39,8 @@
             <button type="button" onclick=grahamScan()>Graham Scan</button>
             <button type="button" onclick=createKDTree()>K-D tree</button>
             <button type="button" onclick=triangulation()>Triangulation</button>
+            <button type="button" onclick=delaunayTriangulation()>Delaunay</button>
+            <button type="button" onclick=voronoiDiagram()>voronoi</button>
 
         </div>
     </body>
@@ -52,6 +59,12 @@
         var points = [];
         var resultLine = [];
         var stack = [];
+        var ael = [];
+        var dt = [];
+        var bestCircle = null;
+        var newPoint = null;
+        var noPoint = null;
+        var triangles = [];
 
         var xScale = d3.scaleLinear().range([0,bodyWidth])
             .domain([0,bodyWidth]);
@@ -186,75 +199,6 @@
             d3.select("#t" + d.x + "-" + d.y + "-" + i).remove();  // Remove text location
         }
        
-        
-        function giftWrapping(){
-            if (points.length === 0) {
-                return;
-            }
-            
-            clearLines()
-        
-            let tmpPoint = points[0];
-            function rightMostPoint(){
-                points.forEach(element => {
-                    element.x > tmpPoint.x ? tmpPoint = element : tmpPoint;
-                });
-                return tmpPoint;
-            }
-            tmpPoint = rightMostPoint();
-            console.log(tmpPoint);
-
-            resultLine.push(tmpPoint);
-            var currentPoint = resultLine[0];
-            var pointToDraw = currentPoint;
-            j = 0;
-            while (true) {
-                nextPoint = points[0];
-                for (let i = 0; i < points.length; i++) {
-                    if(points[i] == currentPoint) {
-                        // console.log('same point');
-                        continue;
-                    }                    
-                    side = crossProdOrientation(currentPoint, nextPoint, points[i]);
-                    // console.log(side);
-                    if(side === 0) {
-                        nextPoint = points[i];
-                    }
-                    else if(side < 0) {
-                        nextPoint = points[i];
-                    }
-                    else{}
-                }
-                if(nextPoint === tmpPoint){
-                    console.log('break');
-                    drawLine(pointToDraw,nextPoint);
-                    break;
-                }
-                j++;
-                resultLine.push(nextPoint);
-                currentPoint = nextPoint;
-                drawLine(pointToDraw,currentPoint);
-                pointToDraw = nextPoint;
-            }        
-            console.log(resultLine);
-        }
-
-
-        function crossProdOrientation(a, b, c){
-            return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x));
-        }
-        
-        // p1 - tmpPoint, a
-        // p2 - mutualPoint, b
-        // p3 - tryPoint, c
-        function computeAngle(p1, p2, p3){
-            // //* (180/Math.PI); for angledegree
-            // return Math.atan2(p2.y - p1.y, p2.x - p1.x);
-            let ab = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-            let bc = Math.sqrt(Math.pow(p2.x - p3.x, 2) + Math.pow(p2.y - p3.y, 2));
-            let ac = Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.y - p1.y, 2));
-            return Math.acos((bc*bc+ab*ab-ac*ac)/(2*bc*ab));
-        }
 
         function drawLine(a,b){
             svg.append('line')
@@ -265,39 +209,48 @@
                     .attr('y2', xScale(b.y));
         }
 
+        function drawCircle(c, color = 'red'){
+            svg.append('circle')
+                .attr('cx', xScale(c.center.x))
+                .attr('cy', xScale(c.center.y))
+                .attr('r', xScale(c.radius))
+                .style('stroke',color)
+                .style('fill','none');
+        }
+
         function sortPoints(a,b){
             if(a.y < b.y) {return -1;}
             if(a.y > b.y) {return 1;}
             else {return 0;}
         }
 
-        function findPath(point,queue,end,path){
-            let tmpP = point;
-            edges.forEach(element => {
-                if(tmpP === end){
-                    //queue.push(tmpP);
-                    return;
-                }
-                //leftPath - elementA === tmpP
-                //rightPath - elementB === tmpP
-                if(path === 0 && element.a === tmpP){
-                    queue.push(element.b);
-                    tmpP = element.b;
-                }
-                if(path === 1 && element.b === tmpP){
-                    queue.push(element.a);
-                    tmpP = element.a;
-                }
-            });
-        }
+        // function findPath(point,queue,end,path){
+        //     let tmpP = point;
+        //     edges.forEach(element => {
+        //         if(tmpP === end){
+        //             //queue.push(tmpP);
+        //             return;
+        //         }
+        //         //leftPath - elementA === tmpP
+        //         //rightPath - elementB === tmpP
+        //         if(path === 0 && element.a === tmpP){
+        //             queue.push(element.b);
+        //             tmpP = element.b;
+        //         }
+        //         if(path === 1 && element.b === tmpP){
+        //             queue.push(element.a);
+        //             tmpP = element.a;
+        //         }
+        //     });
+        // }
 
-        function checkPath(point,path){
-            return path.find((element)=>{
-                return element === point;
-            })
-        }
+        // function checkPath(point,path){
+        //     return path.find((element)=>{
+        //         return element === point;
+        //     })
+        // }
 
-
+        /*
         function triangulation(){
             grahamScan();
             console.log(points,stack, edges);
@@ -371,6 +324,6 @@
                 }
                 stackElemPath = checkPath(lineStack[lineStack.length-1],rightPath);
             }
-        }
+        }*/
     </script>
 </html>

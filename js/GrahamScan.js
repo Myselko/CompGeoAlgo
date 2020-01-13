@@ -1,3 +1,7 @@
+function crossProdOrientation(a, b, c){
+    return ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x));
+}
+
 function grahamScan(){
             
     if (points.length === 0) {
