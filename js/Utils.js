@@ -86,15 +86,15 @@ function checkBorderEdge(edge,center){
     let len = Math.sqrt(middle.x * middle.x + middle.y * middle.y);
     let direction = {x: middle.x - center.x, y: middle.y - center.y};
     direction = normalize(direction,len);
-    direction.x *= 10000;
-    direction.y *= 10000;
+    direction.x *= 100000;
+    direction.y *= 100000;
 
     if(crossProdOrientation(edge.from, edge.to, center) > 0){
         direction.x *= -1;
         direction.y *= -1;
     }
     let outsidePoint = {x:center.x + direction.x, y:center.y + direction.y};
-    drawLine(center,outsidePoint,'orange');
+    drawLine(center,outsidePoint,'red');
 }
 
 function checkNeighbour(edge,toProcess,processedEdges,c){
@@ -106,7 +106,6 @@ function checkNeighbour(edge,toProcess,processedEdges,c){
         if (el.isSame(edge.from,edge.to)) isSame = true;
     })
     if (isSame){
-        console.log('includes');
         return;
     }
     // if (processedEdges.includes(edge)){ console.log('includes'); return}
@@ -115,9 +114,9 @@ function checkNeighbour(edge,toProcess,processedEdges,c){
     //sprav do jeho taziska ciaru
     //pridaj hrany/triuholnik do toProcess
         let nextCenter = calculateCircle(edge.from,edge.to,edge.next.to);
-        drawLine(nextCenter.center,c,'blue');
+        drawLine(nextCenter.center,c,'red');
         toProcess.push(edge);
-        console.log('neighbours ',edge);
+        //console.log('neighbours ',edge);
     }
 }
 
@@ -135,7 +134,7 @@ function findShortestDelDistance(p,edge){
             noPoint = true;
             //left
             //calculate delaunay distance
-            console.log('left ',p,edge);
+            //console.log('left ',p,edge);
             tmpCircle = calculateCircle(edge.from,edge.to,el);
             tmpDelDistance = delaunayDistance(edge.from, edge.to, el,circle.center);                    
             //if its smaller than minimum assing it to min

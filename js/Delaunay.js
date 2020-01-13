@@ -36,7 +36,6 @@ function delaunayTriangulation(){
     if (noPoint){     
         //edge.opposite = true;
         edge.triangle = triangIndex;
-        
         //ael.push(edge);
         let edge2 =  new Edge(edge.to,newPoint,triangIndex);
         let edge3 =  new Edge(newPoint, edge.from,triangIndex);
@@ -50,7 +49,7 @@ function delaunayTriangulation(){
         dt.push(edge);
     }
     else {
-        console.log('opposite');
+        // console.log('opposite');
         findShortestDelDistance(points,oppositeEdge);
         //ael.push(oppositeEdge);
         oppositeEdge.triangle = triangIndex;
@@ -79,21 +78,19 @@ function delaunayTriangulation(){
         })
         if(!isInAEL && !isInDT)
             ael.push(edge);
-        else console.log('edge is in list!', edge);
     }
     
-    drawCircle(bestCircle,'green');
-    // circleCenters.push(bestCircle);
+    //drawCircle(bestCircle,'green');
+    //circleCenters.push(bestCircle);
     triangles[0].circle = bestCircle;
     
     //while AEL is not empty do
-    while (ael.length){                
-        
-        
+    while (ael.length){                  
         let currentEdge = ael.pop();
         let oppEdge1 = currentEdge.newOpposite();
         oppEdge1.oppositeEdge = currentEdge;
         currentEdge.oppositeEdge = oppEdge1;
+        
         findShortestDelDistance(points,oppEdge1);
         if (noPoint){
             triangIndex++;
@@ -103,13 +100,9 @@ function delaunayTriangulation(){
             oppEdge1.next = edge2;
             edge2.next = edge3;
             edge3.next = oppEdge1;
-            
-            
-            //let oppEdge2 =  edge2.newOpposite();
-            //let oppEdge3 =  edge3.newOpposite();
             addToAEL(edge2,ael,dt);
             addToAEL(edge3,ael,dt);
-            drawCircle(bestCircle,'green');
+            //drawCircle(bestCircle,'green');
             // circleCenters.push(bestCircle);
             triangles.push(new Triangle(oppEdge1,edge2,edge3,bestCircle));
         }
@@ -119,7 +112,7 @@ function delaunayTriangulation(){
         //dt.push(edge3);
         //console.log('AEL: ',ael);
     }
-    console.log(dt);
+    //console.log(dt);
     //console.log(circleCenters);
     // console.log(triangles);
     dt.forEach( (el) => {
